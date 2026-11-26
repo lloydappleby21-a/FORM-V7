@@ -45,6 +45,18 @@ h1,h2,h3{margin:0;font-family:var(--display);font-weight:600;text-wrap:balance;l
 .tab{font-variant-numeric:tabular-nums}
 
 #app{display:flex;flex-direction:column;height:100%}
+.gear{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--muted);flex:none}
+.gear svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.gear[aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
+.setrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.setrow:first-of-type{border-top:0}
+.setrow .t{font-weight:600}.setrow .d{font-size:12px;color:var(--muted);margin-top:2px}
+.tgl{position:relative;width:46px;height:28px;border-radius:999px;background:var(--surface2);border:1px solid var(--line);flex:none;transition:background .15s}
+.tgl::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--muted);transition:transform .15s,background .15s}
+.tgl[aria-checked="true"]{background:var(--accent);border-color:var(--accent)}
+.tgl[aria-checked="true"]::after{transform:translateX(18px);background:var(--accent-fg)}
+.setnav{display:flex;flex-wrap:wrap;gap:6px}
+.legal h3{font-size:15px;margin:14px 0 4px}.legal p,.legal li{font-size:13px;line-height:1.55;color:var(--fg)}.legal ul{padding-left:18px;margin:4px 0}
 .fthumb{width:46px;height:46px;border-radius:10px;overflow:hidden;flex:none;display:inline-flex;align-items:center;justify-content:center;background:var(--surface2);border:1px dashed var(--line);cursor:pointer;padding:0;color:var(--muted);font-size:16px;margin-right:10px}
 .fthumb.has{border:1px solid var(--line)}.fthumb img{width:100%;height:100%;object-fit:cover;display:block}
 .wkplan{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
@@ -204,7 +216,7 @@ textarea{min-height:70px;resize:vertical}
 </style>
 
 <div id="app">
-  <header class="top"><div class="logo">FORM</div><div class="hdr-r"><button class="sync" id="syncPill" hidden aria-live="polite"></button><div class="sub" id="hdrDate"></div></div></header>
+  <header class="top"><div class="logo">FORM</div><div class="hdr-r"><button class="sync" id="syncPill" hidden aria-live="polite"></button><button class="gear" id="gearBtn" data-act2="openSettings" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button><div class="sub" id="hdrDate"></div></div></header>
   <main id="main"><div class="view" id="view"></div></main>
   <nav class="tabs" id="tabs">
     <button data-tab="today" aria-current="page"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Today</button>
@@ -216,7 +228,7 @@ textarea{min-height:70px;resize:vertical}
 </div>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,sendPasswordResetEmail,signOut,updateProfile} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,sendPasswordResetEmail,signOut,updateProfile,deleteUser} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import {getFirestore,initializeFirestore,persistentLocalCache,persistentMultipleTabManager,collection,doc,setDoc,deleteDoc,onSnapshot,getDocs} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 const app=initializeApp({apiKey:"AIzaSyBVc1Owz0WvJN0hI_nnTwCL1Z7CoHAHENY",authDomain:"form-f41ba.firebaseapp.com",projectId:"form-f41ba",storageBucket:"form-f41ba.firebasestorage.app",messagingSenderId:"786319080290",appId:"1:786319080290:web:272c42484b1d31181eca3b"});
 const auth=getAuth(app);let db;try{db=initializeFirestore(app,{localCache:persistentLocalCache({tabManager:persistentMultipleTabManager()})});}catch(e){db=getFirestore(app);}
@@ -226,6 +238,11 @@ window.FB={db,auth,doc,collection,setDoc,deleteDoc,onSnapshot,getDocs,
   signUp:async(e,p,n)=>{const c=await createUserWithEmailAndPassword(auth,e,p);if(n){await updateProfile(c.user,{displayName:n});await setDoc(doc(db,"users",c.user.uid),{name:n},{merge:true});}return c.user;},
   reset:e=>sendPasswordResetEmail(auth,e),
   signOut:()=>signOut(auth)};
+window.FB.app=app;
+window.FB.updateName=async n=>{const u=auth.currentUser;if(!u)return;await updateProfile(u,{displayName:n});await setDoc(doc(db,"users",u.uid),{name:n},{merge:true});};
+window.FB.deleteAccount=()=>deleteUser(auth.currentUser);
+window.FB.pushToken=async(reg,vapidKey)=>{const m=await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging.js");if(!(await m.isSupported()))throw {code:"unsupported"};const msg=m.getMessaging(app);m.onMessage(msg,p=>window.dispatchEvent(new CustomEvent("fcm",{detail:p})));return m.getToken(msg,{vapidKey,serviceWorkerRegistration:reg});};
+window.FB.pushOff=async()=>{try{const m=await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging.js");await m.deleteToken(m.getMessaging(app));}catch(e){}};
 window.dispatchEvent(new Event("fbready"));
 </script>
 <div class="toast" id="toast"></div>
@@ -943,9 +960,10 @@ document.addEventListener('change',e=>{if(e.target.id==='lb-m'){LB.m=e.target.va
 document.addEventListener('click',e=>{if(e.target.closest('[data-lb]')){LB.only=!LB.only;render();}});
 
 // ---------- v2: nav, focus, coach, check-in ----------
-const NAVOF={coach:"more",stats:"body",gyms:"more",pts:"more",plan:"more",lib:"more"};
+const NAVOF={settings:"none",coach:"more",stats:"body",gyms:"more",pts:"more",plan:"more",lib:"more"};
 function wrap(t,h){savePrefs();
   if(t==="body"||t==="stats")return `<div class="seg"><button aria-pressed="${t==="body"}" data-act2="goTab" data-t="body">Body</button><button aria-pressed="${t==="stats"}" data-act2="goTab" data-t="stats">Stats</button></div>`+h;
+  if(t==="settings")return `<div class="row between"><button class="btn sm" data-act2="goTab" data-t="${S.prevTab&&S.prevTab!=="settings"?S.prevTab:"today"}">‹ Back</button><div class="mid num">Settings</div><span style="width:60px"></span></div>`+h;
   if(["gyms","pts","plan","lib","coach"].includes(t))return `<button class="btn sm" style="align-self:flex-start" data-act2="goTab" data-t="more">‹ More</button>`+h;
   return h;
 }
@@ -971,6 +989,70 @@ document.addEventListener("click",e=>{
   else{LS("textSize",+b.dataset.v);toast("Text size updated");}
   applyDisplay();render();
 });
+// ---------- push notifications ----------
+// App owner: Firebase console → Project settings → Cloud Messaging → Web Push certificates → Generate key pair, paste the key here.
+const FCM_VAPID_KEY="";
+const NOTE={busy:false};
+const pushSupported=()=>"Notification" in window&&"serviceWorker" in navigator;
+const pushPerm=()=>pushSupported()?Notification.permission:"unsupported";
+const pushOn=()=>pushPerm()==="granted"&&LS("pushOn")!==false;
+const tokId=t=>t.slice(-48).replace(/[^A-Za-z0-9_-]/g,"_");
+async function pushRegister(){
+  if(!FCM_VAPID_KEY||!S.uid||!window.FB||!FB.pushToken)return "local";
+  const reg=await navigator.serviceWorker.ready;
+  const tok=await FB.pushToken(reg,FCM_VAPID_KEY);if(!tok)throw new Error("no token");
+  await FB.setDoc(FB.doc(FB.db,"users",S.uid,"push",tokId(tok)),{token:tok,ua:navigator.userAgent.slice(0,120),t:Date.now()});
+  LS("pushTok",tok);return "push";
+}
+async function enablePush(){
+  if(!pushSupported()){toast("This browser doesn't support notifications");return;}
+  if(isIOS()&&!isStandalone()){toast("On iPhone, install FORM to your home screen first, then turn on notifications there");return;}
+  NOTE.busy=true;render();
+  try{
+    const r=await Notification.requestPermission();
+    if(r!=="granted"){toast(r==="denied"?"Notifications are blocked. Allow them in your browser or phone settings":"Notifications not turned on");return;}
+    LS("pushOn",true);
+    let mode="local";try{mode=await pushRegister();}catch(e){console.warn("push",e);}
+    LS("pushMode",mode);
+    const reg=await navigator.serviceWorker.ready.catch(()=>null);
+    if(reg)reg.showNotification("FORM notifications are on 🔔",{body:"We'll let you know when your coach reviews your workouts and food logs.",icon:"icon-192.png",badge:"icon-192.png",tag:"form-test"});
+    toast("Notifications on");
+  }finally{NOTE.busy=false;render();}
+}
+async function disablePush(){
+  LS("pushOn",false);const tok=LS("pushTok");
+  if(tok&&S.uid){try{await FB.deleteDoc(FB.doc(FB.db,"users",S.uid,"push",tokId(tok)));}catch(e){}try{await FB.pushOff();}catch(e){}LS("pushTok",null);}
+  toast("Notifications off");render();
+}
+function noteCard(){
+  if(!pushSupported())return "";
+  const perm=pushPerm(),on=pushOn(),mode=LS("pushMode");
+  const iosNeedsInstall=isIOS()&&!isStandalone();
+  const status=on?(mode==="push"?"On · alerts arrive even when FORM is closed":"On · alerts show while FORM is open or in the background"):perm==="denied"?"Blocked in your browser/phone settings":"Off";
+  return `<div class="card"><div class="row between"><h2>🔔 Notifications</h2><span class="pill ${on?"on":""}">${on?"On":"Off"}</span></div>
+    <div class="muted small">Get a notification when your coach reviews your workouts or food log.</div>
+    <div class="small" style="margin-top:6px">${esc(status)}</div>
+    ${iosNeedsInstall&&!on?`<div class="coach" style="margin-top:8px">iPhone/iPad: install FORM to your home screen first (see Install FORM above), then turn notifications on from the installed app.</div>`:""}
+    ${perm==="denied"?`<div class="muted small" style="margin-top:6px">To unblock: tap the icon to the left of the web address → Notifications → Allow (Android/desktop), or Settings → FORM → Notifications (iPhone).</div>`:
+      `<button class="btn ${on?"":"primary"} block" style="margin-top:8px" data-act2="${on?"pushOff":"pushOn"}" ${NOTE.busy||(iosNeedsInstall&&!on)?"disabled":""}>${NOTE.busy?"Turning on…":on?"Turn off notifications":"🔔 Turn on notifications"}</button>`}</div>`;
+}
+document.addEventListener("click",e=>{const b=e.target.closest('[data-act2="pushOn"],[data-act2="pushOff"]');if(!b)return;if(b.dataset.act2==="pushOn")enablePush();else disablePush();});
+// keep this device's token fresh after sign-in
+function pushRefresh(){if(pushOn()&&FCM_VAPID_KEY&&S.uid)pushRegister().then(m=>LS("pushMode",m)).catch(()=>{});}
+// foreground message from the server: show a toast (the feedback card updates on its own)
+window.addEventListener("fcm",e=>{const d=(e.detail&&e.detail.data)||{};if(d.fid){const n=LS("fbNotified")||{};n[d.fid]=Date.now();LS("fbNotified",n);}toast("💬 "+(d.title||"Your coach left feedback"));});
+// in-app fallback: alert when new feedback arrives while the app is open or in the background
+function fbNotify(fb){
+  const seen=LS("fbSeen")||{},done=LS("fbNotified")||{},cut=Date.now()-36*3600e3;let changed=false;
+  Object.entries(fb||{}).forEach(([id,f])=>{
+    if(!f||!f.text||seen[id]===f.t||done[id]>=f.t||f.t<cut)return;
+    done[id]=f.t;changed=true;
+    const food=f.kind==="food",title=food?"Your coach reviewed your food log":"Your coach reviewed "+(f.wName||"your workout");
+    if(document.visibilityState==="visible")toast("💬 "+title);
+    else if(pushOn())navigator.serviceWorker.ready.then(reg=>reg.showNotification(title,{body:f.text.length>120?f.text.slice(0,117)+"…":f.text,icon:"icon-192.png",badge:"icon-192.png",tag:"fb-"+id,data:{url:food?"./?tab=food&date="+(f.wDate||""):"./?tab=train&view=history"}})).catch(()=>{});
+  });
+  if(changed)LS("fbNotified",done);
+}
 // ---------- install as an app (PWA) ----------
 const PWA={evt:null,installed:false,update:null};
 const isStandalone=()=>(window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||navigator.standalone===true;
@@ -996,12 +1078,125 @@ if("serviceWorker" in navigator&&location.protocol==="https:"){
     watch(reg.installing);reg.addEventListener("updatefound",()=>watch(reg.installing));
     setInterval(()=>reg.update().catch(()=>{}),60*60*1000);
   }).catch(err=>console.warn("sw",err));});
+  navigator.serviceWorker.addEventListener("message",e=>{const m=e.data||{};if(m.type==="push"){const d=m.data||{};if(d.fid){const n=LS("fbNotified")||{};n[d.fid]=Date.now();LS("fbNotified",n);}toast("💬 "+(d.title||"New message from your coach"));return;}if(m.type!=="open")return;try{const u=new URL(m.url,location.href),qp=u.searchParams,t=qp.get("tab");if(t)S.tab=t;if(qp.get("view")==="history")S.trainView="history";if(qp.get("date"))S.foodDate=qp.get("date");render();}catch(x){}});
   let reloaded=false;navigator.serviceWorker.addEventListener("controllerchange",()=>{if(reloaded||!PWA.update)return;reloaded=true;location.reload();});
 }
+// =================== SETTINGS ===================
+const APP_VERSION="2.0 · 26 Nov 2026";
+const tgl=(k,on,label,desc)=>`<div class="setrow"><div><div class="t">${label}</div>${desc?`<div class="d">${desc}</div>`:""}</div><button class="tgl" role="switch" aria-checked="${!!on}" aria-label="${esc(label)}" data-act2="setPref" data-k="${k}" data-v="${on?0:1}"></button></div>`;
+const segRow=(label,desc,act,opts,cur,extra="")=>`<div class="setrow" style="flex-wrap:wrap"><div style="min-width:140px"><div class="t">${label}</div>${desc?`<div class="d">${desc}</div>`:""}</div><div class="seg" style="width:auto;flex:1;min-width:200px">${opts.map(([v,l])=>`<button aria-pressed="${String(cur)===String(v)}" data-act2="${act}" data-v="${v}" data-u="${v}" ${extra}>${l}</button>`).join("")}</div></div>`;
+function settingsPage(){
+  const g=S.settings,u=bwU();
+  const sec=(id,title,body)=>`<div class="card" id="set-${id}"><h2>${title}</h2>${body}</div>`;
+  const jump=[["account","Account"],["goals","Goals"],["training","Training"],["notes","Notifications"],["display","Display"],["install","Install"],["data","Your data"],["legal","Terms"]];
+  const acct=S.email?`<div class="setrow"><div style="flex:1"><div class="t">Name</div><div class="d">Shown to your coach</div><div class="row" style="gap:6px;margin-top:6px"><input id="setName" value="${esc(S.name||"")}" placeholder="Your name" style="flex:1;min-height:36px"><button class="btn sm" data-act2="saveName">Save</button></div></div></div>
+    <div class="setrow"><div><div class="t">Email</div><div class="d">${esc(S.email)}</div></div></div>
+    <div class="setrow"><div><div class="t">Password</div><div class="d">We'll email you a secure link to set a new one</div></div><button class="btn sm" data-act2="pwReset">Change</button></div>
+    <div class="setrow"><div><div class="t">Sign out</div><div class="d">Clears your data from this device. It stays safe in your account</div></div><button class="btn sm" data-act2="signOut">Sign out</button></div>`:`<div class="muted small">Not signed in. Your entries are only saved on this device.</div>`;
+  const goals=`<div class="setrow"><div><div class="t">Daily targets</div><div class="d">${esc(g.goal||"")} · ${g.cal} kcal · P ${g.protein} C ${g.carbs} F ${g.fat}</div></div><button class="btn sm" data-act="targets">Edit</button></div>
+    <div class="setrow"><div><div class="t">Goal weight</div><div class="d">${g.goalKg?esc(bwFmt(g.goalKg,u)):"Not set"}</div></div><button class="btn sm" data-act2="goalSheet">${g.goalKg?"Edit":"Set"}</button></div>
+    ${segRow("Body weight unit","Used for weigh-ins, graphs and goals","bwUnit",BWU,u,'style="padding:4px 8px"')}`;
+  const training=`<div class="setrow"><div><div class="t">Rest timer</div><div class="d">Seconds between sets</div></div><div class="row" style="gap:6px"><input type="number" inputmode="numeric" min="10" max="600" step="5" value="${g.restSec||90}" data-act2="setRest" style="width:80px;min-height:36px;text-align:center"><span class="muted small">s</span></div></div>
+    ${tgl("restAuto",PREF("restAuto",true),"Start rest timer when I tick a set","Shows what's next while you rest")}
+    ${segRow("Get-ready countdown","Before a workout's clock starts","setReady",[[0,"Off"],[3,"3 s"],[5,"5 s"],[10,"10 s"]],readyS())}
+    ${tgl("sound",PREF("sound",true),"Sounds","Beep when rest ends and the workout starts")}
+    ${tgl("vibrate",PREF("vibrate",true),"Vibration","Buzz on supported phones")}
+    <div class="setrow"><div><div class="t">Weekly plan</div><div class="d">Assign a session to each day</div></div><button class="btn sm" data-act2="planEdit">Edit</button></div>`;
+  const data=`<div class="setrow"><div><div class="t">Download my data</div><div class="d">Spreadsheet files (CSV) you can open in Excel or Google Sheets</div></div></div>
+    <div class="grid2" style="margin-bottom:8px"><button class="btn sm" data-act2="exp" data-k="food">🍽 Food diary</button><button class="btn sm" data-act2="exp" data-k="workouts">🏋 Workouts</button><button class="btn sm" data-act2="exp" data-k="body">⚖ Weight &amp; body</button><button class="btn sm" data-act2="exp" data-k="json">🗂 Everything (JSON)</button></div>
+    <div class="setrow"><div><div class="t">Clear saved searches & offline files</div><div class="d">Frees space on this device. Your logs aren't affected</div></div><button class="btn sm" data-act2="clearLocal">Clear</button></div>
+    ${S.email?`<div class="setrow"><div><div class="t" style="color:var(--bad)">Delete my account</div><div class="d">Permanently deletes your account and everything you've logged</div></div><button class="btn sm danger" data-act2="delAccount">Delete</button></div>`:""}`;
+  const legal=`<div class="setrow"><div><div class="t">Terms &amp; conditions</div></div><button class="btn sm" data-act2="legal" data-k="terms">Read</button></div>
+    <div class="setrow"><div><div class="t">Privacy policy</div><div class="d">What we store and who can see it</div></div><button class="btn sm" data-act2="legal" data-k="privacy">Read</button></div>
+    <div class="setrow"><div><div class="t">Health &amp; safety disclaimer</div></div><button class="btn sm" data-act2="legal" data-k="health">Read</button></div>
+    <div class="muted small" style="margin-top:8px">FORM ${APP_VERSION}${isStandalone()?" · installed app":""}</div>`;
+  return `<div class="setnav" role="navigation" aria-label="Settings sections">${jump.map(([k,l])=>`<button class="pill" style="min-height:30px;padding:4px 10px" data-act2="setJump" data-k="${k}">${l}</button>`).join("")}</div>`
+    +sec("account","Account",acct)+sec("goals","Goals & units",goals)+sec("training","Training",training)
+    +`<div id="set-notes">${noteCard()||sec("x","🔔 Notifications",`<div class="muted small">This browser doesn't support notifications.</div>`)}</div>`
+    +`<div id="set-display">${displayCard()}</div>`
+    +`<div id="set-install">${installCard()||sec("x","📲 Install FORM",`<div class="muted small">Open FORM from your website link to install it.</div>`)}</div>`
+    +sec("data","Your data",data)+sec("legal","Terms & policies",legal);
+}
+// ---- data export ----
+const csvCell=v=>{v=v==null?"":String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
+const toCSV=rows=>rows.map(r=>r.map(csvCell).join(",")).join("\r\n");
+function download(name,text,type){const b=new Blob(["\ufeff"+text],{type:type||"text/csv;charset=utf-8"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);}
+const hhmm=t=>t?new Date(t).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}):"";
+function exportData(k){
+  const st=ymd();
+  if(k==="food"){const rows=[["Date","Time","Meal","Food","Serving","Calories","Protein g","Carbs g","Fat g","Has photo"]];
+    Object.keys(S.days).sort().forEach(d=>(S.days[d].meals||[]).slice().sort((a,b)=>(a.t||0)-(b.t||0)).forEach(m=>rows.push([d,hhmm(m.t),m.meal,m.name,m.serving,r0(m.cal),r1(m.p),r1(m.c),r1(m.f),m.photo?"yes":""])));
+    if(rows.length<2){toast("No food logged yet");return;}download(`FORM-food-${st}.csv`,toCSV(rows));}
+  else if(k==="workouts"){const rows=[["Date","Start","Finish","Workout","Type","Duration min","Distance km","Session RPE","Exercise","Set","Weight kg","Reps","Volume kg","Notes"]];
+    workoutsSorted().slice().reverse().forEach(w=>{const base=[w.date,hhmm(w.start),hhmm(w.end),w.name,w.type,w.duration??"",w.distance??"",w.rpe??""];
+      const ex=(w.exercises||[]).flatMap(e=>(e.sets||[]).filter(logged).map((x,i)=>[e.name,i+1,+x.kg||0,+x.reps||0,r0((+x.kg||0)*(+x.reps||0))]));
+      if(!ex.length)rows.push([...base,"","","","","",w.notes||""]);else ex.forEach((r,i)=>rows.push([...base,...r,i?"":(w.notes||"")]));});
+    if(rows.length<2){toast("No workouts logged yet");return;}download(`FORM-workouts-${st}.csv`,toCSV(rows));}
+  else if(k==="body"){const rows=[["Date","Weight kg","Weight lb","Weight st & lb","Body fat %","Waist cm","Chest cm","Arm cm","Thigh cm"]];
+    bodySorted().forEach(b=>{const kg=bwKg(b);rows.push([b.date,kg?r1(kg):"",kg?r1(kg/LBKG):"",kg?stlb(kg/LBKG):"",b.bf??"",b.waist??"",b.chest??"",b.arm??"",b.thigh??""]);});
+    if(rows.length<2){toast("No body entries yet");return;}download(`FORM-body-${st}.csv`,toCSV(rows));}
+  else{const o={exported:new Date().toISOString(),email:S.email||null};COLLS.forEach(c=>o[c]=S[c]);download(`FORM-all-data-${st}.json`,JSON.stringify(o,null,2),"application/json");}
+  toast("Download started");
+}
+// ---- delete account ----
+function deleteAccountSheet(){
+  openSheet(`<h2 style="color:var(--bad)">Delete my account</h2><div class="small">This permanently deletes your FORM account and everything you've logged: food, photos, workouts, weigh-ins, routines, plans and coach feedback. Your coach will no longer see you. <b>This can't be undone.</b></div>
+    <div class="muted small">Tip: download your data first (Settings → Your data).</div>
+    <div class="field"><label>Type DELETE to confirm</label><input id="delConf" autocomplete="off" autocapitalize="characters"></div>
+    <div class="grid2"><button class="btn" id="delNo">Cancel</button><button class="btn danger" id="delGo">Delete forever</button></div>`);
+  const sh=$("#sheet");$("#delNo",sh).onclick=closeSheet;
+  $("#delGo",sh).onclick=async()=>{if($("#delConf",sh).value.trim().toUpperCase()!=="DELETE"){toast("Type DELETE to confirm");return;}
+    const b=$("#delGo",sh);b.disabled=true;b.textContent="Deleting…";const F=FB,uid=S.uid;let fail=0;
+    try{for(const c of [...COLLS,"push"]){let sn;try{sn=await F.getDocs(F.collection(F.db,"users",uid,c));}catch(e){fail++;continue;}for(const d of sn.docs){try{await F.deleteDoc(F.doc(F.db,"users",uid,c,d.id));}catch(e){fail++;}}}
+      try{await F.deleteDoc(F.doc(F.db,"users",uid));}catch(e){fail++;}
+      try{await F.deleteAccount();}catch(e){if(e&&e.code==="auth/requires-recent-login"){closeSheet();toast("Your data is deleted. For security, sign in again and repeat this to remove the login itself");LS("cache",null);LS("uid",null);F.signOut();return;}throw e;}
+      ["cache","uid","active","fbSeen","fbNotified","pushTok","gCache","gNear","gLoc"].forEach(k=>LS(k,null));closeSheet();toast(fail?"Account deleted (some items need your coach to remove)":"Account deleted");
+    }catch(e){b.disabled=false;b.textContent="Delete forever";toast("Couldn't delete everything. Check your connection and try again");}};
+}
+// ---- legal text ----
+const LEGAL={
+terms:["Terms & conditions",`<p><i>Last updated 26 November 2026.</i> By creating an account or using FORM you agree to these terms.</p>
+<h3>1. The service</h3><p>FORM is a fitness app for tracking food, workouts, body measurements and progress, finding gyms and trainers, and being coached. It's provided by the app owner ("we", "us"). We may change, pause or stop features at any time.</p>
+<h3>2. Your account</h3><ul><li>You must be 16 or over, or have a parent's or guardian's permission.</li><li>Keep your password private. You're responsible for activity on your account.</li><li>Give accurate information, and don't use someone else's account.</li></ul>
+<h3>3. Coaching</h3><p>If you sign up through a coach, they can see what you log (food and photos, workouts, weigh-ins, measurements, targets and plans) and can leave feedback and set plans for you. Coaches are responsible for the advice they give.</p>
+<h3>4. Not medical advice</h3><p>Nutrition figures, calorie suggestions, workout plans, goal estimates and exercise videos are general information only. See the Health &amp; safety disclaimer.</p>
+<h3>5. Third-party information</h3><p>Gym, trainer, map and food data come from third parties (including Google Maps, OpenStreetMap and Open Food Facts) and may be wrong or out of date. Always check opening hours and prices with the gym or trainer. Reviews reflect the opinions of the people who wrote them.</p>
+<h3>6. Acceptable use</h3><p>Don't upload anything unlawful, offensive or that you don't have the right to share, don't post false reviews, and don't try to access other people's data or disrupt the app.</p>
+<h3>7. Your content</h3><p>You own what you log and upload. You let us store and display it so the app works for you and your coach.</p>
+<h3>8. Liability</h3><p>FORM is provided "as is". So far as the law allows, we're not liable for injury, loss or damage arising from using the app or relying on its information. Nothing here limits liability that can't be limited by law, including for death or personal injury caused by negligence.</p>
+<h3>9. Ending your account</h3><p>You can delete your account at any time in Settings → Your data. We may suspend accounts that break these terms.</p>
+<h3>10. Law</h3><p>These terms are governed by the laws of England and Wales.</p>`],
+privacy:["Privacy policy",`<p><i>Last updated 26 November 2026.</i> This explains what FORM stores, why, and your rights under UK GDPR.</p>
+<h3>What we collect</h3><ul><li><b>Account:</b> your email address, name and an encrypted login (Google Firebase).</li><li><b>What you log:</b> food and food photos, workouts, weigh-ins and body measurements, targets, goals, routines and weekly plans.</li><li><b>Coach feedback</b> left on your logs.</li><li><b>Device settings</b> (theme, text size, units, notification preference), kept on your device.</li><li><b>Notification token:</b> if you turn on notifications, a code that lets us send them to this device.</li></ul>
+<h3>Health data</h3><p>Weight, body measurements, food intake and progress photos count as health information. We only store them because you choose to log them, to provide the app and coaching. You can delete them at any time.</p>
+<h3>Location</h3><p>If you allow it, your location is used on your device to find nearby gyms. It isn't saved to your account. Searches are sent to map services (OpenStreetMap, and Google Maps if enabled) to get results. If you don't allow location, an approximate area may be estimated from your internet connection.</p>
+<h3>Who can see your data</h3><ul><li>You.</li><li>Your coach (the app owner and any coaches they add) can see your logged data in order to coach you.</li><li>Our service providers, who process data for us: Google Firebase (storage, login and notifications), and map and food database services for searches. We don't sell your data or use it for advertising.</li></ul>
+<h3>How long we keep it</h3><p>Until you delete it or delete your account. Deleting your account removes your logs from our database.</p>
+<h3>Your rights</h3><p>You can access and download your data (Settings → Download my data), correct it, delete it (Settings → Delete my account), and object to or restrict how it's used. To make a request or complaint, contact your coach or the app owner. You can also complain to the Information Commissioner's Office (ico.org.uk).</p>`],
+health:["Health & safety disclaimer",`<p>FORM provides general fitness and nutrition information. It is <b>not medical advice</b> and doesn't replace a doctor, dietitian or physiotherapist.</p>
+<ul><li>Speak to a doctor before starting a new exercise or diet programme, especially if you're pregnant, have a medical condition, an injury, or are taking medication.</li><li>Stop exercising and get medical help if you feel chest pain, dizziness, severe breathlessness or sharp pain.</li><li>Calorie and macro figures are estimates. Food database values may be inaccurate.</li><li>Goal dates and calorie suggestions are based on your recent trend and are estimates only.</li><li>Learn good technique before lifting heavy weights, use a spotter or safety bars, and progress gradually.</li><li>If you have, or think you may have, an eating disorder, please talk to your GP or contact Beat (beateatingdisorders.org.uk, helpline 0808 801 0677) before tracking food or weight.</li></ul>
+<p>You use FORM and follow any plan at your own risk.</p>`]};
+function legalSheet(k){const L=LEGAL[k];if(!L)return;openSheet(`<div class="row between"><h2 style="margin:0">${L[0]}</h2><button class="btn sm" id="lgClose">Close</button></div><div class="legal">${L[1]}</div>`);$("#lgClose").onclick=closeSheet;}
+// ---- settings events ----
+document.addEventListener("click",async e=>{
+  const b=e.target.closest('[data-act2="openSettings"],[data-act2="setPref"],[data-act2="setReady"],[data-act2="setJump"],[data-act2="saveName"],[data-act2="pwReset"],[data-act2="exp"],[data-act2="clearLocal"],[data-act2="delAccount"],[data-act2="legal"]');if(!b)return;
+  const a=b.dataset.act2;
+  if(a==="openSettings"){if(S.tab==="settings"){switchTab(S.prevTab||"today");return;}S.prevTab=S.tab;switchTab("settings");}
+  else if(a==="setPref"){LS("pref."+b.dataset.k,b.dataset.v==="1");render();}
+  else if(a==="setReady"){LS("pref.readyS",+b.dataset.v);render();toast(+b.dataset.v?"Countdown: "+b.dataset.v+" seconds":"Countdown off");}
+  else if(a==="setJump"){const el=document.getElementById("set-"+b.dataset.k);if(el)el.scrollIntoView({behavior:"smooth",block:"start"});}
+  else if(a==="saveName"){const n=($("#setName")||{}).value.trim();if(!n){toast("Enter your name");return;}try{await FB.updateName(n);S.name=n;toast("Name saved");}catch(err){toast("Couldn't save your name. Check your connection");}}
+  else if(a==="pwReset"){try{await FB.reset(S.email);toast("Password reset email sent to "+S.email);}catch(err){toast("Couldn't send the email. Try again later");}}
+  else if(a==="exp")exportData(b.dataset.k);
+  else if(a==="clearLocal"){["gCache","gNear","wRange","splitsOpen","gView"].forEach(k=>LS(k,null));try{if(window.caches){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)));}}catch(err){}toast("Cleared. Offline files will download again next time you're online");}
+  else if(a==="delAccount")deleteAccountSheet();
+  else if(a==="legal")legalSheet(b.dataset.k);
+});
+document.addEventListener("change",e=>{const t=e.target;if(t&&t.dataset&&t.dataset.act2==="setRest"){const v=Math.max(10,Math.min(600,+t.value||90));save("settings","main",{...S.settings,restSec:v});toast("Rest timer: "+v+" s");}});
 function more(){
   const it=[["gyms","Gyms","Hours, ratings and kit for gyms near you"],["pts","Personal trainers","Scored by review volume and rating"],["plan","Workout planner","Build a session around a gym's equipment"],["lib","Exercise library","Form cues and demo videos"]];
   if(S.isCoach)it.push(["coach","Coach dashboard","See each member's food, workouts and weight"]);
-  return it.map(x=>`<button class="card" style="text-align:left;width:100%" data-act2="goTab" data-t="${x[0]}"><div class="mid num">${x[1]}</div><div class="muted small" style="margin-top:6px">${x[2]}</div></button>`).join("")+installCard()+displayCard()+`<div class="muted small">${S.email?"Signed in as "+esc(S.email)+". ":""}Your entries are saved to your account. The app owner can view members' logged food, workouts and body stats to coach them.</div><button class="btn block" data-act2="signOut">Sign out</button>`;
+  return it.map(x=>`<button class="card" style="text-align:left;width:100%" data-act2="goTab" data-t="${x[0]}"><div class="mid num">${x[1]}</div><div class="muted small" style="margin-top:6px">${x[2]}</div></button>`).join("")+`<button class="card" style="text-align:left;width:100%" data-act2="openSettings"><div class="mid num">⚙ Settings</div><div class="muted small" style="margin-top:6px">Targets, units, display, notifications, install, your data and terms</div></button><div class="muted small">${S.email?"Signed in as "+esc(S.email)+". ":""}Your entries are saved to your account. The app owner can view members' logged food, workouts and body stats to coach them.</div><button class="btn block" data-act2="signOut">Sign out</button>`;
 }
 const SPL={ppl:["Push","Pull","Legs"],ul:["Upper","Lower"],fb:["Full body"]};
 const DAYM={Push:["Chest","Shoulders","Triceps"],Pull:["Back","Biceps"],Legs:["Quads","Hamstrings","Glutes","Calves"],Upper:["Chest","Back","Shoulders","Biceps","Triceps"],Lower:["Quads","Hamstrings","Glutes","Calves","Core"],"Full body":["Chest","Back","Quads","Shoulders","Hamstrings","Core"]};
@@ -1033,8 +1228,8 @@ function fbUnseen(){const seen=LS("fbSeen")||{};return Object.entries(S.feedback
 function fbMarkSeen(){const seen=LS("fbSeen")||{};Object.entries(S.feedback||{}).forEach(([id,f])=>{seen[id]=f.t;if(S.db&&!f.seen){try{FB.setDoc(FB.doc(FB.db,"users",S.uid,"feedback",id),{seen:Date.now()},{merge:true}).catch(()=>{});}catch(e){}}});LS("fbSeen",seen);}
 function fbCard(){const u=fbUnseen();if(!u.length)return "";
   return `<div class="card hero"><div class="row between"><h2>💬 New coach feedback</h2><span class="pill on">${u.length}</span></div><div class="list">${u.slice(0,3).map(f=>`<div class="item"><div class="grow"><div class="title">${esc(f.wName||"Workout")} <span class="muted small">· ${esc(f.wDate?fmtDate(f.wDate):"")}</span></div><div style="margin-top:4px">${esc(f.text)}</div><div class="meta">${esc(new Date(f.t).toLocaleString("en-GB",{weekday:"short",hour:"2-digit",minute:"2-digit"}))}</div></div></div>`).join("")}</div>
-  <div class="grid2" style="margin-top:8px"><button class="btn" data-act2="fbSeen">Got it</button><button class="btn primary" data-act2="fbView">See in History</button></div></div>`;}
-document.addEventListener("click",e=>{const b=e.target.closest('[data-act2="fbSeen"],[data-act2="fbView"]');if(!b)return;fbMarkSeen();if(b.dataset.act2==="fbView"){S.tab="train";S.trainView="history";}render();});
+  <div class="grid2" style="margin-top:8px"><button class="btn" data-act2="fbSeen">Got it</button><button class="btn primary" data-act2="fbView">${u[0].kind==="food"?"See food log":"See in History"}</button></div>${pushSupported()&&pushPerm()==="default"&&!(isIOS()&&!isStandalone())?`<button class="btn sm block" style="margin-top:8px" data-act2="pushOn">🔔 Notify me next time my coach reviews something</button>`:""}</div>`;}
+document.addEventListener("click",e=>{const b=e.target.closest('[data-act2="fbSeen"],[data-act2="fbView"]');if(!b)return;fbMarkSeen();if(b.dataset.act2==="fbView"){const f=Object.values(S.feedback||{}).filter(x=>x&&x.text).sort((a,b)=>b.t-a.t)[0];if(f&&f.kind==="food"){S.tab="food";if(f.wDate)S.foodDate=f.wDate;}else{S.tab="train";S.trainView="history";}}render();});
 function today(){return fbCard()+(LOCALV?`<div class="banner">You are viewing a local copy of the file. Settings and workouts are only remembered when you open the app from your website link.</div>`:"")+todayBase();}
 function ring(t,g){
   const arc=(R,sw,col,v,goal)=>{const C=2*Math.PI*R,p=Math.min(1,goal?v/goal:0);return `<circle cx="100" cy="100" r="${R}" stroke="var(--surface2)" stroke-width="${sw}" fill="none"/><circle class="arc" cx="100" cy="100" r="${R}" stroke="${col}" stroke-width="${sw}" fill="none" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-p)}" style="--c:${C}"/>`;};
@@ -1395,7 +1590,8 @@ function coach(){
       const ml=[...(d.days[k].meals||[])].sort((x,y)=>(x.t||0)-(y.t||0)),tot=r0(sum(ml,x=>x.cal)),ts=ml.map(x=>x.t).filter(Boolean);
       const span=ts.length?` · ${ml.length} item${ml.length>1?"s":""} logged ${hm(Math.min(...ts))}${ts.length>1?"–"+hm(Math.max(...ts)):""}`:` · ${ml.length} item${ml.length>1?"s":""}`;
       const items=`<details class="muted small" style="margin-top:6px"><summary style="cursor:pointer">Show entries</summary><div style="margin-top:6px;line-height:1.7">${ml.map(x=>`<div class="row between" style="gap:8px"><span>${x.photo?`<img src="${x.photo}" alt="" style="width:32px;height:32px;border-radius:6px;object-fit:cover;vertical-align:middle;margin-right:6px">`:""}<b class="num" style="color:var(--fg)">${x.t?hm(x.t):"--:--"}</b> · ${esc(x.meal||"")} · ${esc(x.name)}${x.serving?" ("+esc(x.serving)+")":""}${x.t&&ymd(new Date(x.t))!==k?` <i>(logged ${esc(stamp(x.t))})</i>`:""}</span><span class="num">${r0(x.cal)} kcal</span></div>`).join("")}</div></details>`;
-      return row(fmtDate(k),`P ${r0(sum(ml,x=>x.p))} C ${r0(sum(ml,x=>x.c))} F ${r0(sum(ml,x=>x.f))}${span}`,tot+(tg.cal?" / "+r0(tg.cal):"")+" kcal",items);
+      const ff=(d.feedback||{})["food-"+k];
+      return row(fmtDate(k),`P ${r0(sum(ml,x=>x.p))} C ${r0(sum(ml,x=>x.c))} F ${r0(sum(ml,x=>x.f))}${span}`,tot+(tg.cal?" / "+r0(tg.cal):"")+" kcal",items+(ff?`<div class="meta" style="color:var(--accent);margin-top:4px">💬 ${esc(ff.text.length>60?ff.text.slice(0,60)+"…":ff.text)}${ff.seen?" · Seen":""}</div>`:"")+`<button class="btn sm" style="margin-top:6px" data-act2="coachDayFb" data-day="${k}">💬 ${ff?"Edit review":"Review this day"}</button>`);
     }).join("")}</div>`:`<div class="empty">No food logged.</div>`}</div>`;
     // ---- workouts with session time and posting time ----
     const ws=Object.entries(d.workouts).map(([wid,w])=>({...w,_id:wid})).sort((x,y)=>(y.end||y.start||Date.parse(y.date))-(x.end||x.start||Date.parse(x.date))).slice(0,10);
@@ -1463,7 +1659,7 @@ async function onUser(u){
   hideAuth();
   const prev=LS("uid");
   if(prev&&prev!==u.uid){COLLS.forEach(c=>S[c]=c==="settings"?{...DEFAULT_SETTINGS}:{});S.active=null;LS("active",null);saveCache();}
-  S.uid=u.uid;S.email=u.email;S.online=true;
+  S.uid=u.uid;S.email=u.email;S.name=u.displayName||"";S.online=true;
   const col=c=>F.collection(F.db,"users",u.uid,c);
   SYNC.loaded=false;SYNC.ld=new Set();setTimeout(syncUI,0);setTimeout(()=>{if(!SYNC.loaded){SYNC.loaded=true;syncUI();}},15000);
   S.db={collection:c=>({doc:id=>({set:d=>F.setDoc(F.doc(F.db,"users",u.uid,c,id),d),delete:()=>F.deleteDoc(F.doc(F.db,"users",u.uid,c,id))})})};
@@ -1478,10 +1674,12 @@ async function onUser(u){
   }
   LS("uid",u.uid);
   F.getDocs(F.collection(F.db,"users")).then(()=>{S.isCoach=true;render();}).catch(()=>{S.isCoach=false;});
+  setTimeout(()=>{try{pushRefresh();}catch(e){}},3000);
   for(const coll of COLLS){
     F.onSnapshot(col(coll),snap=>{
       const o={};snap.docs.forEach(d=>{o[d.id]=d.data();});
       if(coll==="settings"){if(o.main)S.settings={...DEFAULT_SETTINGS,...o.main};}else S[coll]=o;
+      if(coll==="feedback"&&!snap.metadata.hasPendingWrites)try{fbNotify(o);}catch(err){}
       if(!snap.metadata||!snap.metadata.fromCache||!navigator.onLine){SYNC.ld=(SYNC.ld||new Set()).add(coll);if(SYNC.ld.size>=COLLS.length&&!SYNC.loaded){SYNC.loaded=true;}}
       saveCache();render();syncUI();
     },e=>{console.warn("snapshot",coll,e);if(e&&e.code==="permission-denied"&&!S.rulesWarned){S.rulesWarned=1;toast("Can't load your saved data: database rules are blocking it");}});
@@ -1523,18 +1721,31 @@ function coachWorkout(id){
   const fb=(d.feedback||{})[id];
   const sh=document.getElementById("sheet");
   if(sh){const box=document.createElement("div");box.className="card";box.style.padding="12px";
-    box.innerHTML=`<h2 style="margin:0 0 6px">💬 Coach feedback</h2>${fb?`<div class="muted small" style="margin-bottom:6px">Sent ${esc(new Date(fb.t).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}))}${fb.seen?" · Seen by member":""}</div>`:`<div class="muted small" style="margin-bottom:6px">Your comment appears on this workout in the member's History.</div>`}
+    box.innerHTML=`<h2 style="margin:0 0 6px">💬 Coach feedback</h2>${fb?`<div class="muted small" style="margin-bottom:6px">Sent ${esc(new Date(fb.t).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}))}${fb.seen?" · Seen by member":""}</div>`:`<div class="muted small" style="margin-bottom:6px">Your comment appears on this workout in the member's History, and they get a notification if they've turned them on.</div>`}
       <textarea id="cwFb" rows="3" placeholder="e.g. Great bench session, add 2.5 kg next week">${esc(fb?fb.text:"")}</textarea>
       <div class="grid2" style="margin-top:8px">${fb?`<button class="btn danger" id="cwFbDel">Delete</button>`:`<span></span>`}<button class="btn primary" id="cwFbSave">${fb?"Update feedback":"Send feedback"}</button></div>`;
     sh.appendChild(box);
     const err=e=>toast(e&&e.code==="permission-denied"?"Couldn't send: update your Firestore rules to allow coach feedback":"Couldn't send feedback. Check your connection");
     box.querySelector("#cwFbSave").onclick=async()=>{const text=box.querySelector("#cwFb").value.trim();if(!text){toast("Write some feedback first");return;}
-      const o={text,wid:id,wName:w.name||w.type,wDate:w.date,by:S.email||"Coach",t:Date.now()};
+      const o={text,kind:"workout",wid:id,wName:w.name||w.type,wDate:w.date,by:S.email||"Coach",t:Date.now()};
       try{await FB.setDoc(FB.doc(FB.db,"users",COACH.sel,"feedback",id),o);(d.feedback=d.feedback||{})[id]=o;closeSheet();toast("Feedback sent");render();}catch(e){err(e);}};
     const del=box.querySelector("#cwFbDel");if(del)del.onclick=async()=>{try{await FB.deleteDoc(FB.doc(FB.db,"users",COACH.sel,"feedback",id));delete d.feedback[id];closeSheet();toast("Feedback deleted");render();}catch(e){err(e);}};
   }
   const c=document.getElementById("cwClose");if(c)c.onclick=closeSheet;
 }
+function coachDayFb(day){
+  const d=COACH.data;if(!d)return;const id="food-"+day,fb=(d.feedback||{})[id],ml=((d.days[day]||{}).meals)||[],tg=(d.settings&&d.settings.main)||{};
+  openSheet(`<h2>Review food · ${esc(fmtDate(day))}</h2><div class="muted small">${ml.length} items · ${r0(sum(ml,x=>x.cal))}${tg.cal?" / "+r0(tg.cal):""} kcal · P ${r0(sum(ml,x=>x.p))} C ${r0(sum(ml,x=>x.c))} F ${r0(sum(ml,x=>x.f))}</div>
+    <textarea id="cdFb" rows="4" placeholder="e.g. Great protein today. Try adding veg at lunch">${esc(fb?fb.text:"")}</textarea>
+    <div class="muted small">The member gets a notification (if they've turned them on) and sees this on their Food page for that day.</div>
+    <div class="grid2">${fb?`<button class="btn danger" id="cdDel">Delete</button>`:`<span></span>`}<button class="btn primary" id="cdSave">${fb?"Update review":"Send review"}</button></div>`);
+  const sh=$("#sheet"),err=e=>toast(e&&e.code==="permission-denied"?"Couldn't send: update your Firestore rules to allow coach feedback":"Couldn't send. Check your connection");
+  $("#cdSave",sh).onclick=async()=>{const text=$("#cdFb",sh).value.trim();if(!text){toast("Write a comment first");return;}
+    const o={text,kind:"food",wName:"Food log",wDate:day,by:S.email||"Coach",t:Date.now()};
+    try{await FB.setDoc(FB.doc(FB.db,"users",COACH.sel,"feedback",id),o);(d.feedback=d.feedback||{})[id]=o;closeSheet();toast("Review sent");render();}catch(e){err(e);}};
+  const del=$("#cdDel",sh);if(del)del.onclick=async()=>{try{await FB.deleteDoc(FB.doc(FB.db,"users",COACH.sel,"feedback",id));delete d.feedback[id];closeSheet();toast("Review deleted");render();}catch(e){err(e);}};
+}
+document.addEventListener("click",e=>{const b=e.target.closest('[data-act2="coachDayFb"]');if(b)coachDayFb(b.dataset.day);});
 async function coachOpen(id){
   COACH.sel=id;COACH.data=null;render();
   const g=c=>FB.getDocs(FB.collection(FB.db,"users",id,c)).then(sn=>{const o={};sn.docs.forEach(d=>o[d.id]=d.data());return o;}).catch(()=>({}));
@@ -1542,12 +1753,13 @@ async function coachOpen(id){
   COACH.data={days,workouts,body,settings,feedback,routines,plan};render();
 }
 document.addEventListener("click",e=>{if(e.target.closest('[data-act2="signOut"]')){COLLS.forEach(c=>S[c]=c==="settings"?{...DEFAULT_SETTINGS}:{});S.active=null;LS("active",null);LS("cache",null);LS("uid",null);FB.signOut();}});
-const views={today,train,food,body,stats,gyms,pts,plan,lib,more,coach};
+const views={today,train,food,body,stats,gyms,pts,plan,lib,more,coach,settings:settingsPage};
 function render(){
   $("#hdrDate").textContent=new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"});
   const nt=NAVOF[S.tab]||S.tab;$$("#tabs button").forEach(b=>{if(b.dataset.tab===nt)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current");});
   const v=$("#view");const scroll=$("#main").scrollTop;v.innerHTML=wrap(S.tab,views[S.tab]());$("#main").scrollTop=scroll;
   renderRest();
+  const gb=document.getElementById("gearBtn");if(gb)gb.setAttribute("aria-pressed",S.tab==="settings");
 }
 function switchTab(t){S.tab=t;$("#main").scrollTop=0;render();}
 
@@ -1603,8 +1815,9 @@ function trainBase(){
   <div class="card"><div class="row between"><h2>Routines</h2><button class="btn sm" data-act="newRoutine">New</button></div>
   ${rs.length?`<div class="list">${rs.map(r=>`<div class="item"><div class="grow"><div class="title">${esc(r.name)}</div><div class="meta">${(r.exercises||[]).map(e=>esc(e.name)).join(", ")||"No exercises"}</div></div><button class="btn sm" data-act="editRoutine" data-id="${r.id}">Edit</button><button class="btn sm primary" data-act="startRoutine" data-id="${r.id}">Start</button></div>`).join("")}</div>`:`<div class="empty">No routines yet. Make one and it'll be ready to repeat every session.</div>`}</div>`;
 }
-const READY_S=5;
-function startWorkout(w){const now=Date.now();S.active={id:uid(),date:ymd(),...w,start:now+READY_S*1000,ready:now+READY_S*1000,started:true,paused:null,pausedMs:0};prefill(S.active);LS("active",S.active);S.tab="train";render();wkTickStart();}
+const PREF=(k,d)=>{const v=LS("pref."+k);return v==null?d:v;};
+const readyS=()=>+PREF("readyS",5);
+function startWorkout(w){const now=Date.now();S.active={id:uid(),date:ymd(),...w,start:now+readyS()*1000,ready:readyS()?now+readyS()*1000:null,started:true,paused:null,pausedMs:0};prefill(S.active);LS("active",S.active);S.tab="train";render();wkTickStart();}
 // ---------- workout clock: get-ready countdown, elapsed time, pause ----------
 const wkElapsed=a=>{if(!a||!a.start)return 0;const now=a.paused||Date.now();return Math.max(0,now-a.start-(a.pausedMs||0));};
 const hms=ms=>{const t=Math.floor(ms/1000),h=Math.floor(t/3600);return (h?h+":":"")+pad(Math.floor(t%3600/60))+":"+pad(t%60);};
@@ -1676,7 +1889,7 @@ function nextUp(ei,si){
 }
 let restTick=null;
 function startRest(sec,next){S.rest={end:Date.now()+sec*1000,tot:sec*1000,next:next||null};clearInterval(restTick);restTick=setInterval(()=>{if(!S.rest)return clearInterval(restTick);if(Date.now()>=S.rest.end){S.rest=null;clearInterval(restTick);beep();toast("Rest over");}renderRest();},250);renderRest();}
-function beep(){try{const ac=new (window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),gn=ac.createGain();o.connect(gn);gn.connect(ac.destination);o.frequency.value=880;gn.gain.value=.15;o.start();o.stop(ac.currentTime+.25);if(navigator.vibrate)navigator.vibrate(200);}catch(e){}}
+function beep(){if(!PREF("sound",true)){if(PREF("vibrate",true)&&navigator.vibrate)navigator.vibrate(200);return;}try{const ac=new (window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),gn=ac.createGain();o.connect(gn);gn.connect(ac.destination);o.frequency.value=880;gn.gain.value=.15;o.start();o.stop(ac.currentTime+.25);if(PREF("vibrate",true)&&navigator.vibrate)navigator.vibrate(200);}catch(e){}}
 
 // ---------- FOOD ----------
 const MEALS=["Breakfast","Lunch","Dinner","Snacks"];
@@ -1684,6 +1897,7 @@ function food(){
   const d=S.foodDate,doc=dayDoc(d),t=dayTotals(d),g=S.settings;
   return `<div class="datenav"><button class="btn sm" data-act="fdate" data-n="-1">‹</button><b>${fmtDate(d)}</b><button class="btn sm" data-act="fdate" data-n="1">›</button></div>
   <div class="card hero"><div class="row between"><h2>Totals</h2><div class="row">${(doc.meals||[]).length?"":`<button class="btn sm" data-act="copyYesterday">Copy yesterday</button>`}<button class="btn sm" data-act="targets">Targets</button></div></div><div class="row between" style="margin-bottom:10px"><div class="big num">${r0(t.cal)}<span class="mid muted"> / ${g.cal}</span></div><div class="muted small">kcal</div></div>${macroBars(t,g)}</div>
+  ${(()=>{const f=(S.feedback||{})["food-"+d];return f&&f.text?`<div class="card" style="border-left:3px solid var(--accent)"><div class="row between"><h2 style="margin:0">💬 Coach review</h2><span class="muted small">${esc(new Date(f.t).toLocaleString("en-GB",{weekday:"short",hour:"2-digit",minute:"2-digit"}))}</span></div><div style="margin-top:6px;white-space:pre-wrap">${esc(f.text)}</div></div>`:"";})()}
   ${MEALS.map(m=>{const items=(doc.meals||[]).filter(x=>x.meal===m);return `<div class="card"><div class="mealhead"><h3>${m}</h3><div class="row"><span class="muted small num">${r0(sum(items,x=>x.cal))} kcal</span><button class="btn sm primary" data-act="addFood" data-meal="${m}">+ Add</button></div></div>
     ${items.length?`<div class="list">${items.map(x=>`<div class="item">${x.photo?`<button class="fthumb has" data-act2="fPhotoView" data-id="${x.id}" aria-label="View photo of ${esc(x.name)}"><img src="${x.photo}" alt="" loading="lazy"></button>`:`<label class="fthumb" title="Add a photo" aria-label="Add a photo of ${esc(x.name)}">📷<input type="file" accept="image/*" capture="environment" data-fpic="${x.id}" hidden></label>`}<div class="grow"><div class="title">${esc(x.name)}</div><div class="meta">${esc(x.serving||"")}${x.serving?" · ":""}P ${r0(x.p)} C ${r0(x.c)} F ${r0(x.f)}</div></div><div class="val">${r0(x.cal)}</div><button class="x" data-act="delFood" data-id="${x.id}" aria-label="Remove"><svg class="icon" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>`).join("")}</div>`:""}</div>`;}).join("")}`;
 }
@@ -1847,7 +2061,7 @@ document.body.addEventListener("click",async e=>{
     case "newRoutine":routineSheet(null);break;
     case "editRoutine":{const r=S.routines[ds.id];if(r&&r.type&&r.type!=="gym")actSheet(ds.id,r.type);else routineSheet(ds.id);break;}
     case "startRoutine":{const r=S.routines[ds.id];if(r&&r.type&&r.type!=="gym"){startAct(ds.id);break;}startWorkout({type:"gym",name:r.name,routineId:ds.id,exercises:(r.exercises||[]).map(x=>({name:x.name,muscle:x.muscle,sets:[...Array(+x.sets||3)].map(()=>({kg:"",reps:"",done:false}))}))});break;}
-    case "toggleSet":{const s=S.active.exercises[+ds.ei].sets[+ds.si];s.done=!s.done;if(s.done){if(!entered(s))toast("Type the reps (and kg) to record this set");if(!S.active.paused)startRest(+S.settings.restSec||90,nextUp(+ds.ei,+ds.si));}else if(S.rest){S.rest=null;renderRest();}LS("active",S.active);render();break;}
+    case "toggleSet":{const s=S.active.exercises[+ds.ei].sets[+ds.si];s.done=!s.done;if(s.done){if(!entered(s))toast("Type the reps (and kg) to record this set");if(!S.active.paused)(PREF("restAuto",true)&&startRest(+S.settings.restSec||90,nextUp(+ds.ei,+ds.si)));}else if(S.rest){S.rest=null;renderRest();}LS("active",S.active);render();break;}
     case "addSet":{const ex=S.active.exercises[+ds.ei];const last=ex.sets[ex.sets.length-1]||{};ex.sets.push({kg:"",reps:"",sk:last.kg||last.sk||"",sr:last.reps||last.sr||"",done:false});LS("active",S.active);render();break;}
     case "rmSet":{const ex=S.active.exercises[+ds.ei];if(ex.sets.length>1)ex.sets.pop();LS("active",S.active);render();break;}
     case "rmEx":S.active.exercises.splice(+ds.ei,1);LS("active",S.active);render();break;
@@ -1880,7 +2094,7 @@ document.body.addEventListener("input",e=>{
 document.body.addEventListener("change",e=>{if(e.target.dataset.act==="restSec")save("settings","main",{...S.settings,restSec:+e.target.value||90});});
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet();});
 
-{const qt=new URLSearchParams(location.search).get("tab");if(qt&&["today","food","train","body","stats","more"].includes(qt))S.tab=qt;if(qt||location.search.includes("source=pwa"))history.replaceState(null,"",location.pathname);}
+{const qp=new URLSearchParams(location.search),qt=qp.get("tab");if(qt&&["today","food","train","body","stats","more"].includes(qt))S.tab=qt;if(qp.get("view")==="history")S.trainView="history";if(/^\d{4}-\d{2}-\d{2}$/.test(qp.get("date")||""))S.foodDate=qp.get("date");if(qt||location.search.includes("source=pwa"))history.replaceState(null,"",location.pathname);}
 render();
 startFirebase();
 })();
