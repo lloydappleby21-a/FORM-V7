@@ -1,6 +1,6 @@
-/* FORM service worker: makes the app installable and lets it open offline.
+/* FORM service worker: makes the app installable, lets it open offline, and shows push notifications.
    Change VERSION whenever you upload a new index.html so phones pick up the update. */
-const VERSION = "form-v1-2026-11-26";
+const VERSION = "form-v4-2026-11-26";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png", "./apple-touch-icon.png"];
 // Libraries and fonts the app needs to start (cached so it opens with no signal)
 const CDN = /^https:\/\/(www\.gstatic\.com\/firebasejs\/|fonts\.googleapis\.com\/|fonts\.gstatic\.com\/|unpkg\.com\/leaflet@)/;
@@ -44,5 +44,40 @@ self.addEventListener("fetch", e => {
     })());
   }
   // Everything else (Firebase data, maps, food search, gyms) goes straight to the network.
-  // Your logged data still works offline through Firebase's own offline storage.
+});
+
+/* ---------- Push notifications (sent by the notifyCoachFeedback Cloud Function) ---------- */
+self.addEventListener("push", e => {
+  let j = {};
+  try { j = e.data ? e.data.json() : {}; } catch (err) { j = { data: { body: e.data && e.data.text() } }; }
+  const d = j.data || (j.notification ? { title: j.notification.title, body: j.notification.body } : j) || {};
+  const title = d.title || "FORM";
+  e.waitUntil((async () => {
+    // If FORM is open on screen, let the page show its own message instead of a system alert
+    const wins = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    if (wins.some(w => w.visibilityState === "visible")) { wins.forEach(w => w.postMessage({ type: "push", data: d })); return; }
+    await self.registration.showNotification(title, {
+      body: d.body || "",
+      icon: "icon-192.png",
+      badge: "icon-192.png",
+      tag: d.tag || "form",
+      renotify: true,
+      data: { url: d.url || "./" }
+    });
+  })());
+});
+
+self.addEventListener("notificationclick", e => {
+  e.notification.close();
+  const target = new URL((e.notification.data && e.notification.data.url) || "./", self.registration.scope).href;
+  e.waitUntil((async () => {
+    const wins = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const w of wins) {
+      if (w.url.startsWith(self.registration.scope)) {
+        w.postMessage({ type: "open", url: target });
+        return w.focus();
+      }
+    }
+    return self.clients.openWindow(target);
+  })());
 });

@@ -45,6 +45,13 @@ h1,h2,h3{margin:0;font-family:var(--display);font-weight:600;text-wrap:balance;l
 .tab{font-variant-numeric:tabular-nums}
 
 #app{display:flex;flex-direction:column;height:100%}
+#onb{position:fixed;inset:0;z-index:90;background:var(--bg);overflow-y:auto;padding:calc(20px + env(safe-area-inset-top,0px)) 18px calc(30px + env(safe-area-inset-bottom,0px))}
+#onb .wrap{max-width:460px;margin:0 auto;display:flex;flex-direction:column;gap:14px;zoom:var(--tz)}
+#onb .prog{height:6px;border-radius:999px;background:var(--surface2);overflow:hidden}#onb .prog i{display:block;height:100%;background:var(--accent);transition:width .25s}
+#onb .opt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:14px;border-radius:14px;border:1.5px solid var(--line);background:var(--surface)}
+#onb .opt[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--surface))}
+#onb .opt .e{font-size:24px;flex:none}#onb .opt b{display:block}#onb .opt span{font-size:12px;color:var(--muted)}
+#onb h1{font-family:var(--display);font-size:30px;line-height:1.1}
 .gear{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--muted);flex:none}
 .gear svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .gear[aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
@@ -1081,6 +1088,115 @@ if("serviceWorker" in navigator&&location.protocol==="https:"){
   navigator.serviceWorker.addEventListener("message",e=>{const m=e.data||{};if(m.type==="push"){const d=m.data||{};if(d.fid){const n=LS("fbNotified")||{};n[d.fid]=Date.now();LS("fbNotified",n);}toast("💬 "+(d.title||"New message from your coach"));return;}if(m.type!=="open")return;try{const u=new URL(m.url,location.href),qp=u.searchParams,t=qp.get("tab");if(t)S.tab=t;if(qp.get("view")==="history")S.trainView="history";if(qp.get("date"))S.foodDate=qp.get("date");render();}catch(x){}});
   let reloaded=false;navigator.serviceWorker.addEventListener("controllerchange",()=>{if(reloaded||!PWA.update)return;reloaded=true;location.reload();});
 }
+// =================== FIRST-TIME SETUP ===================
+const ACT=[[1.2,"🪑","Mostly sitting","Desk job, little exercise"],[1.375,"🚶","Lightly active","On your feet some of the day, or 1–3 workouts a week"],[1.55,"🏃","Active","3–5 workouts a week"],[1.725,"🏋","Very active","6–7 hard sessions a week, or a physical job"],[1.9,"🔥","Athlete","Training twice a day or heavy manual work"]];
+const GOALS=[["Lose fat","📉","Lose fat","Steady fat loss while keeping muscle"],["Gain muscle","💪","Build muscle","A small surplus to build lean muscle"],["Maintain","⚖️","Maintain","Stay where you are, get fitter"],["General health","❤️","Get healthier","Eat better and move more"]];
+// Mifflin-St Jeor + activity, then goal adjustment and macro split
+function calcTargets(o){
+  const w=o.kg,h=o.cm,a=o.age,male=o.sex==="m";
+  const bmr=10*w+6.25*h-5*a+(male?5:o.sex==="f"?-161:-78);
+  const tdee=bmr*o.act,bmi=w/((h/100)**2);
+  let cal=tdee,note="";
+  const safe=o.age<18||(bmi<18.5&&o.goal==="Lose fat");
+  if(safe){note="Set to maintenance for safety.";}
+  else if(o.goal==="Lose fat"){cal=tdee*(bmi>30?0.75:0.8);}
+  else if(o.goal==="Gain muscle"){cal=tdee*1.1;}
+  const floor=male?1500:o.sex==="f"?1200:1350;
+  if(cal<floor){cal=floor;note=`Calories set to the safe minimum of ${floor} kcal.`;}
+  cal=Math.round(cal/10)*10;
+  const pkg=o.goal==="Lose fat"?2.0:o.goal==="Gain muscle"?1.8:1.6;
+  const refW=bmi>30?(25*(h/100)**2):w;                       // protein from a healthy reference weight when BMI is high
+  let protein=Math.round(Math.min(pkg*refW,cal*0.35/4)/5)*5;
+  let fat=Math.round(Math.max(cal*0.25/9,0.6*w)/5)*5;
+  let carbs=Math.max(0,Math.round((cal-protein*4-fat*9)/4/5)*5);
+  return {cal,protein,carbs,fat,bmr:Math.round(bmr),tdee:Math.round(tdee),bmi:Math.round(bmi*10)/10,note};
+}
+const OB={step:0,d:{}};
+const OB_STEPS=["welcome","goal","about","weight","activity","result"];
+function obEl(){let el=document.getElementById("onb");if(!el){el=document.createElement("div");el.id="onb";el.setAttribute("role","dialog");el.setAttribute("aria-modal","true");el.setAttribute("aria-label","Set up FORM");document.body.appendChild(el);}return el;}
+function obClose(){const el=document.getElementById("onb");if(el)el.remove();}
+function openOnboarding(){
+  const g=S.settings||{};
+  OB.step=0;OB.d={name:S.name||"",goal:g.onboarded?g.goal:null,sex:g.sex||null,age:g.age||"",cm:g.heightCm||"",hu:LS("hUnit")||"cm",act:g.activity||null,kg:(()=>{const p=bwPoints(S.body);return p.length?p[p.length-1].kg:null;})(),goalKg:g.goalKg||null};
+  obDraw();
+}
+function obDraw(){
+  const el=obEl(),d=OB.d,st=OB_STEPS[OB.step],u=bwU(),n=OB_STEPS.length;
+  const opt=(act,v,e,t,sub,cur)=>`<button class="opt" aria-pressed="${String(cur)===String(v)}" data-ob="${act}" data-v="${v}"><span class="e" aria-hidden="true">${e}</span><div><b>${t}</b>${sub?`<span>${sub}</span>`:""}</div></button>`;
+  let body="",next="Next",canSkip=OB.step>0&&OB.step<n-1;
+  if(st==="welcome")body=`<div style="text-align:center;margin-top:20px"><img src="icon-192.png" alt="" width="72" height="72" style="border-radius:18px" onerror="this.remove()"></div><h1>Welcome to FORM${d.name?", "+esc(d.name.split(" ")[0]):""} 👋</h1><div class="muted">Answer 5 quick questions and we'll work out your daily calories and macros. It takes about a minute, and you can change anything later in Settings.</div>
+    <div class="field"><label>What should we call you?</label><input id="obName" value="${esc(d.name)}" placeholder="Your name" autocomplete="name"></div>`,next="Let's go";
+  else if(st==="goal")body=`<h1>What's your main goal?</h1>${GOALS.map(x=>opt("goal",x[0],x[1],x[2],x[3],d.goal)).join("")}`;
+  else if(st==="about"){const ft=d.cm?Math.floor(d.cm/30.48):"",inch=d.cm?Math.round((d.cm/2.54)-Math.floor(d.cm/30.48)*12):"";
+    body=`<h1>About you</h1><div class="muted small">Used to estimate how many calories your body burns.</div>
+    <div class="field"><label>Sex</label><div class="seg">${[["m","Male"],["f","Female"],["x","Prefer not to say"]].map(([v,l])=>`<button aria-pressed="${d.sex===v}" data-ob="sex" data-v="${v}">${l}</button>`).join("")}</div></div>
+    <div class="field"><label>Age</label><input id="obAge" type="number" inputmode="numeric" min="13" max="100" value="${esc(d.age)}" placeholder="e.g. 32"></div>
+    <div class="field"><div class="row between"><label>Height</label><div class="seg" style="width:auto">${[["cm","cm"],["ft","ft & in"]].map(([v,l])=>`<button style="padding:2px 10px;min-height:26px;font-size:12px" aria-pressed="${d.hu===v}" data-ob="hu" data-v="${v}">${l}</button>`).join("")}</div></div>
+      ${d.hu==="ft"?`<div class="row" style="gap:6px"><input id="obFt" type="number" inputmode="numeric" value="${ft}" placeholder="5" style="flex:1"><span class="muted small">ft</span><input id="obIn" type="number" inputmode="numeric" value="${inch}" placeholder="10" style="flex:1"><span class="muted small">in</span></div>`:`<div class="row" style="gap:6px"><input id="obCm" type="number" inputmode="numeric" value="${esc(d.cm?Math.round(d.cm):"")}" placeholder="175" style="flex:1"><span class="muted small">cm</span></div>`}</div>
+    ${d.sex==="x"?`<div class="muted small">We'll use an average of the male and female formulas.</div>`:""}`;}
+  else if(st==="weight")body=`<h1>Your weight</h1><div class="row between"><div class="muted small">Units</div><div class="seg" style="width:auto">${BWU.map(([k,l])=>`<button style="padding:2px 10px;min-height:26px;font-size:12px" aria-pressed="${u===k}" data-ob="bwu" data-v="${k}">${l}</button>`).join("")}</div></div>
+    <div class="field"><label>Current weight</label>${bwInput("obW",u,bwPh(d.kg,u))}</div>
+    <div class="field"><label>Goal weight ${d.goal==="Maintain"||d.goal==="General health"?"(optional)":""}</label>${bwInput("obG",u,bwPh(d.goalKg,u))}</div>
+    <div class="muted small">Your current weight is saved as today's weigh-in and starts your progress graph.</div>`;
+  else if(st==="activity")body=`<h1>How active are you?</h1><div class="muted small">Include your job and exercise. If unsure, pick the lower one.</div>${ACT.map(x=>opt("act",x[0],x[1],x[2],x[3],d.act)).join("")}`;
+  else if(st==="result"){const r=calcTargets(d);d.r=d.r||r;const t=d.r,m=t.protein*4+t.carbs*4+t.fat*9;
+    const warn=d.age<18?`<div class="coach" style="border-left:3px solid var(--warn)">You're under 18. Please check your targets with a parent, coach or GP, and focus on eating well and training rather than restricting food.</div>`:t.bmi<18.5&&d.goal==="Lose fat"?`<div class="coach" style="border-left:3px solid var(--warn)">Your BMI is ${t.bmi}, which is already below the healthy range. We've set maintenance calories. Please speak to your GP before trying to lose weight.</div>`:"";
+    body=`<h1>Your daily targets 🎯</h1>${warn}
+    <div class="card hero" style="text-align:center"><div class="muted small">Calories per day</div><div class="big num" style="font-size:52px">${t.cal}</div><div class="muted small">kcal</div>
+      <div class="grid3" style="margin-top:12px">${[["Protein",t.protein,"--protein"],["Carbs",t.carbs,"--carbs"],["Fat",t.fat,"--fat"]].map(([l,v,c])=>`<div><div class="num" style="font-size:24px;font-weight:700;color:var(${c})">${v}g</div><div class="muted small">${l}</div></div>`).join("")}</div></div>
+    <details class="small"><summary style="cursor:pointer;font-weight:600">How we worked this out</summary><div class="muted" style="margin-top:6px;line-height:1.6">Your body burns about <b>${r.bmr} kcal</b> at rest (Mifflin-St Jeor formula) and about <b>${r.tdee} kcal</b> a day with your activity. ${r.note==="Set to maintenance for safety."?"For your safety we've kept you at maintenance.":d.goal==="Lose fat"?`For fat loss we've taken off ${r.bmi>30?"25":"20"}%, which is a steady, sustainable deficit.`:d.goal==="Gain muscle"?"For muscle gain we've added 10%, enough to grow without much fat gain.":"For your goal we've kept you at maintenance."} Protein is set to support muscle, fat to about 25% of calories, and carbs make up the rest. ${r.note} BMI: ${r.bmi}.</div></details>
+    <details class="small"><summary style="cursor:pointer;font-weight:600">Adjust targets</summary><div class="grid2" style="margin-top:8px">${[["cal","Calories"],["protein","Protein g"],["carbs","Carbs g"],["fat","Fat g"]].map(([k,l])=>`<div class="field"><label>${l}</label><input type="number" inputmode="numeric" data-obt="${k}" value="${t[k]}"></div>`).join("")}</div><div class="muted small" id="obChk">Macros add up to ${Math.round(m)} kcal.</div></details>
+    <div class="muted small">These are estimates. Check your weekly trend and adjust. See Settings → Health &amp; safety. ${S.isCoach?"":"Your coach can see these targets."}</div>`;
+    next="Save & start";}
+  el.innerHTML=`<div class="wrap"><div class="row between"><button class="btn sm" data-ob="back" ${OB.step?"":"style=\"visibility:hidden\""}>‹ Back</button><span class="muted small">${OB.step+1} of ${n}</span><button class="btn sm" data-ob="later">${OB.step===n-1?"Cancel":"Skip setup"}</button></div>
+    <div class="prog" aria-hidden="true"><i style="width:${(OB.step+1)/n*100}%"></i></div>${body}
+    <button class="btn primary block" style="min-height:50px;font-size:16px" data-ob="next">${next}</button>${canSkip&&st==="weight"?`<button class="btn block" data-ob="skipstep">Skip this step</button>`:""}</div>`;
+  el.scrollTop=0;
+  const f=el.querySelector("input");if(f&&OB.step&&st!=="result")setTimeout(()=>f.focus({preventScroll:true}),60);
+}
+function obRead(){const d=OB.d,st=OB_STEPS[OB.step],v=id=>{const e=document.getElementById(id);return e?e.value.trim():"";};
+  if(st==="welcome"){d.name=v("obName");return true;}
+  if(st==="goal"){if(!d.goal){toast("Pick a goal");return false;}d.r=null;return true;}
+  if(st==="about"){d.age=+v("obAge");if(d.hu==="ft"){const ft=+v("obFt"),i=+v("obIn");d.cm=ft||i?(ft*12+i)*2.54:0;}else d.cm=+v("obCm");
+    if(!d.sex){toast("Choose an option for sex");return false;}if(!(d.age>=13&&d.age<=100)){toast("Enter your age (13–100)");return false;}if(!(d.cm>=120&&d.cm<=230)){toast("Check your height");return false;}d.r=null;return true;}
+  if(st==="weight"){const u=bwU(),kg=bwRead("obW",u),gk=bwRead("obG",u);if(kg)d.kg=kg;if(gk)d.goalKg=gk;
+    if(!(d.kg>=30&&d.kg<=300)){toast("Enter your current weight");return false;}if(d.goalKg&&!(d.goalKg>=30&&d.goalKg<=300)){toast("Check your goal weight");return false;}d.r=null;return true;}
+  if(st==="activity"){if(!d.act){toast("Pick your activity level");return false;}d.r=null;return true;}
+  return true;}
+async function obFinish(){
+  const d=OB.d,fin=d.r||calcTargets(d);
+  const ns={...S.settings,goal:d.goal,cal:fin.cal,protein:fin.protein,carbs:fin.carbs,fat:fin.fat,sex:d.sex,age:d.age,heightCm:Math.round(d.cm*10)/10,activity:d.act,goalKg:d.goalKg?Math.round(d.goalKg*1000)/1000:(S.settings.goalKg||null),onboarded:Date.now()};
+  await save("settings","main",ns);
+  const day=ymd(),cur=S.body[day]||{};
+  if(d.kg&&(!bwKg(cur)||Math.abs(bwKg(cur)-d.kg)>0.05))await save("body",day,{...cur,weight:Math.round(d.kg*1000)/1000,wu:"kg",t:Date.now()});
+  if(d.name&&d.name!==S.name&&window.FB&&FB.updateName){try{await FB.updateName(d.name);S.name=d.name;}catch(e){}}
+  LS("hUnit",d.hu);obClose();S.tab="today";render();toast(`You're all set${d.name?", "+d.name.split(" ")[0]:""}! ${fin.cal} kcal a day`);
+}
+document.addEventListener("click",e=>{
+  const b=e.target.closest("[data-ob]");if(!b)return;const a=b.dataset.ob,d=OB.d,v=b.dataset.v;
+  if(a==="next"){if(!obRead())return;if(OB.step===OB_STEPS.length-1){obFinish();return;}OB.step++;obDraw();}
+  else if(a==="back"){obRead();OB.step=Math.max(0,OB.step-1);obDraw();}
+  else if(a==="skipstep"){OB.step++;obDraw();}
+  else if(a==="later"){if(S.uid)LS("obLater."+S.uid,Date.now());obClose();render();if(!(S.settings||{}).onboarded)toast("You can finish setup any time from Today or Settings");}
+  else if(a==="goal"){d.goal=v;obDraw();}
+  else if(a==="act"){d.act=+v;obDraw();}
+  else if(a==="sex"){obRead.keep=1;const age=document.getElementById("obAge");d.age=age?age.value:d.age;d.sex=v;obDraw();}
+  else if(a==="hu"){const st=OB_STEPS[OB.step];if(st==="about"){const x=id=>{const e=document.getElementById(id);return e?+e.value:0;};if(d.hu==="ft"){const ft=x("obFt"),i=x("obIn");if(ft||i)d.cm=(ft*12+i)*2.54;}else if(x("obCm"))d.cm=x("obCm");const age=document.getElementById("obAge");if(age)d.age=age.value;}d.hu=v;obDraw();}
+  else if(a==="bwu"){const kg=bwRead("obW",bwU()),gk=bwRead("obG",bwU());if(kg)d.kg=kg;if(gk)d.goalKg=gk;save("settings","main",{...S.settings,bwUnit:v,unit:v==="kg"?"kg":"lb"});obDraw();}
+});
+document.addEventListener("input",e=>{const k=e.target&&e.target.dataset&&e.target.dataset.obt;if(!k||!OB.d.r)return;OB.d.r[k]=Math.max(0,+e.target.value||0);const t=OB.d.r,m=t.protein*4+t.carbs*4+t.fat*9,c=document.getElementById("obChk");if(c)c.textContent=`Macros add up to ${Math.round(m)} kcal (${m>t.cal+50?"above":m<t.cal-50?"below":"matches"} your calorie target).`;});
+// when to show it: brand-new members get it automatically once their data has loaded
+function obCheck(){
+  if(!S.uid||!SYNC.loaded||OB.checked===S.uid)return;OB.checked=S.uid;
+  const g=S.settings||{};if(g.onboarded)return;
+  const isNew=!Object.keys(S.days||{}).length&&!Object.keys(S.workouts||{}).length&&!Object.keys(S.body||{}).length&&g.cal===DEFAULT_SETTINGS.cal;
+  if(isNew&&!LS("obLater."+S.uid)&&!document.getElementById("onb"))openOnboarding();
+}
+function obCard(){
+  const g=S.settings||{};if(g.onboarded||!S.uid)return "";
+  return `<div class="card hero"><div class="row between" style="gap:10px"><div><h2>🎯 Personalise your targets</h2><div class="small">Answer 5 quick questions and we'll set calories and macros for your body and goal.</div></div><button class="btn primary" data-act2="openOnb">Start</button></div></div>`;
+}
+document.addEventListener("click",e=>{if(e.target.closest('[data-act2="openOnb"]'))openOnboarding();});
 // =================== SETTINGS ===================
 const APP_VERSION="2.0 · 26 Nov 2026";
 const tgl=(k,on,label,desc)=>`<div class="setrow"><div><div class="t">${label}</div>${desc?`<div class="d">${desc}</div>`:""}</div><button class="tgl" role="switch" aria-checked="${!!on}" aria-label="${esc(label)}" data-act2="setPref" data-k="${k}" data-v="${on?0:1}"></button></div>`;
@@ -1093,7 +1209,8 @@ function settingsPage(){
     <div class="setrow"><div><div class="t">Email</div><div class="d">${esc(S.email)}</div></div></div>
     <div class="setrow"><div><div class="t">Password</div><div class="d">We'll email you a secure link to set a new one</div></div><button class="btn sm" data-act2="pwReset">Change</button></div>
     <div class="setrow"><div><div class="t">Sign out</div><div class="d">Clears your data from this device. It stays safe in your account</div></div><button class="btn sm" data-act2="signOut">Sign out</button></div>`:`<div class="muted small">Not signed in. Your entries are only saved on this device.</div>`;
-  const goals=`<div class="setrow"><div><div class="t">Daily targets</div><div class="d">${esc(g.goal||"")} · ${g.cal} kcal · P ${g.protein} C ${g.carbs} F ${g.fat}</div></div><button class="btn sm" data-act="targets">Edit</button></div>
+  const goals=`<div class="setrow"><div><div class="t">Personalised setup</div><div class="d">${g.onboarded?`${g.sex==="m"?"Male":g.sex==="f"?"Female":"–"} · ${g.age||"–"} yrs · ${g.heightCm?Math.round(g.heightCm)+" cm":"–"} · ${(ACT.find(a=>a[0]===g.activity)||[0,0,"–"])[2]}`:"Answer 5 questions to set calories and macros for you"}</div></div><button class="btn sm ${g.onboarded?"":"primary"}" data-act2="openOnb">${g.onboarded?"Redo":"Start"}</button></div>
+    <div class="setrow"><div><div class="t">Daily targets</div><div class="d">${esc(g.goal||"")} · ${g.cal} kcal · P ${g.protein} C ${g.carbs} F ${g.fat}</div></div><button class="btn sm" data-act="targets">Edit</button></div>
     <div class="setrow"><div><div class="t">Goal weight</div><div class="d">${g.goalKg?esc(bwFmt(g.goalKg,u)):"Not set"}</div></div><button class="btn sm" data-act2="goalSheet">${g.goalKg?"Edit":"Set"}</button></div>
     ${segRow("Body weight unit","Used for weigh-ins, graphs and goals","bwUnit",BWU,u,'style="padding:4px 8px"')}`;
   const training=`<div class="setrow"><div><div class="t">Rest timer</div><div class="d">Seconds between sets</div></div><div class="row" style="gap:6px"><input type="number" inputmode="numeric" min="10" max="600" step="5" value="${g.restSec||90}" data-act2="setRest" style="width:80px;min-height:36px;text-align:center"><span class="muted small">s</span></div></div>
@@ -1230,7 +1347,7 @@ function fbCard(){const u=fbUnseen();if(!u.length)return "";
   return `<div class="card hero"><div class="row between"><h2>💬 New coach feedback</h2><span class="pill on">${u.length}</span></div><div class="list">${u.slice(0,3).map(f=>`<div class="item"><div class="grow"><div class="title">${esc(f.wName||"Workout")} <span class="muted small">· ${esc(f.wDate?fmtDate(f.wDate):"")}</span></div><div style="margin-top:4px">${esc(f.text)}</div><div class="meta">${esc(new Date(f.t).toLocaleString("en-GB",{weekday:"short",hour:"2-digit",minute:"2-digit"}))}</div></div></div>`).join("")}</div>
   <div class="grid2" style="margin-top:8px"><button class="btn" data-act2="fbSeen">Got it</button><button class="btn primary" data-act2="fbView">${u[0].kind==="food"?"See food log":"See in History"}</button></div>${pushSupported()&&pushPerm()==="default"&&!(isIOS()&&!isStandalone())?`<button class="btn sm block" style="margin-top:8px" data-act2="pushOn">🔔 Notify me next time my coach reviews something</button>`:""}</div>`;}
 document.addEventListener("click",e=>{const b=e.target.closest('[data-act2="fbSeen"],[data-act2="fbView"]');if(!b)return;fbMarkSeen();if(b.dataset.act2==="fbView"){const f=Object.values(S.feedback||{}).filter(x=>x&&x.text).sort((a,b)=>b.t-a.t)[0];if(f&&f.kind==="food"){S.tab="food";if(f.wDate)S.foodDate=f.wDate;}else{S.tab="train";S.trainView="history";}}render();});
-function today(){return fbCard()+(LOCALV?`<div class="banner">You are viewing a local copy of the file. Settings and workouts are only remembered when you open the app from your website link.</div>`:"")+todayBase();}
+function today(){return fbCard()+obCard()+(LOCALV?`<div class="banner">You are viewing a local copy of the file. Settings and workouts are only remembered when you open the app from your website link.</div>`:"")+todayBase();}
 function ring(t,g){
   const arc=(R,sw,col,v,goal)=>{const C=2*Math.PI*R,p=Math.min(1,goal?v/goal:0);return `<circle cx="100" cy="100" r="${R}" stroke="var(--surface2)" stroke-width="${sw}" fill="none"/><circle class="arc" cx="100" cy="100" r="${R}" stroke="${col}" stroke-width="${sw}" fill="none" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-p)}" style="--c:${C}"/>`;};
   const left=g.cal-t.cal;
@@ -1661,7 +1778,7 @@ async function onUser(u){
   if(prev&&prev!==u.uid){COLLS.forEach(c=>S[c]=c==="settings"?{...DEFAULT_SETTINGS}:{});S.active=null;LS("active",null);saveCache();}
   S.uid=u.uid;S.email=u.email;S.name=u.displayName||"";S.online=true;
   const col=c=>F.collection(F.db,"users",u.uid,c);
-  SYNC.loaded=false;SYNC.ld=new Set();setTimeout(syncUI,0);setTimeout(()=>{if(!SYNC.loaded){SYNC.loaded=true;syncUI();}},15000);
+  SYNC.loaded=false;SYNC.ld=new Set();setTimeout(syncUI,0);setTimeout(()=>{if(!SYNC.loaded){SYNC.loaded=true;syncUI();setTimeout(obCheck,300);}},15000);
   S.db={collection:c=>({doc:id=>({set:d=>F.setDoc(F.doc(F.db,"users",u.uid,c,id),d),delete:()=>F.deleteDoc(F.doc(F.db,"users",u.uid,c,id))})})};
   F.setDoc(F.doc(F.db,"users",u.uid),{email:u.email,lastSeen:Date.now()},{merge:true}).catch(()=>{});
   if(!prev){// first sign-in on this device: upload only what the account doesn't already have (never overwrite saved targets)
@@ -1681,7 +1798,7 @@ async function onUser(u){
       if(coll==="settings"){if(o.main)S.settings={...DEFAULT_SETTINGS,...o.main};}else S[coll]=o;
       if(coll==="feedback"&&!snap.metadata.hasPendingWrites)try{fbNotify(o);}catch(err){}
       if(!snap.metadata||!snap.metadata.fromCache||!navigator.onLine){SYNC.ld=(SYNC.ld||new Set()).add(coll);if(SYNC.ld.size>=COLLS.length&&!SYNC.loaded){SYNC.loaded=true;}}
-      saveCache();render();syncUI();
+      saveCache();render();syncUI();if(SYNC.loaded)setTimeout(obCheck,300);
     },e=>{console.warn("snapshot",coll,e);if(e&&e.code==="permission-denied"&&!S.rulesWarned){S.rulesWarned=1;toast("Can't load your saved data: database rules are blocking it");}});
   }
   render();
